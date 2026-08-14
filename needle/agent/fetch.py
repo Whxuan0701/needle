@@ -8,6 +8,14 @@ HF_REPO = "Cactus-Compute/needle2"
 ENGINE_VERSION = "2.0.1"
 
 
+def _lib_name_for(tag):
+    if tag.startswith("macosx"):
+        return "libneedle.dylib"
+    if tag.startswith("win"):
+        return "libneedle.dll"
+    return "libneedle.so"
+
+
 def _lib_name():
     if sys.platform == "darwin":
         return "libneedle.dylib"
@@ -41,13 +49,13 @@ def _platform_tag():
     return family + arch
 
 
-def fetch_library(version, dest_dir):
+def fetch_library(version, dest_dir, tag=None):
     from huggingface_hub import hf_hub_download
 
-    tag = _platform_tag()
+    tag = tag or _platform_tag()
     wheel = "cactus_needle-{}-py3-none-{}.whl".format(version, tag)
     path = hf_hub_download(repo_id=HF_REPO, filename="python/" + wheel, repo_type="model")
-    lib = _lib_name()
+    lib = _lib_name_for(tag)
     with zipfile.ZipFile(path) as archive:
         data = archive.read("needle/" + lib)
     out = os.path.join(dest_dir, lib)

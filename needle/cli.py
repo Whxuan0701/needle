@@ -7,6 +7,13 @@ import threading
 HELP = """Check the readme"""
 
 
+def _weights_spec(spec):
+    parts = [p for p in spec.split("/") if p]
+    if len(parts) < 2:
+        raise SystemExit("pass <org>/<repo>/<file>.cact or <org>/<repo>")
+    return "/".join(parts[:2]), "/".join(parts[2:]) or None
+
+
 _ABSL_LOG_START = re.compile(rb"^[EIWF]\d{4} \d\d:\d\d:\d\d")
 _NOISY_LOG_HEADER = re.compile(
     rb"\] (?:Fusion: .*gemm_fusion|Computation: .*_computation|Delay kernel timed out)"
@@ -148,6 +155,17 @@ def main():
     p.add_argument("--upload", action="store_true", help="Push the .cact to $NEEDLE_HF_REPO")
     p.add_argument("--bits", type=str, default=None, choices=["2", "4"])
 
+    p = sub.add_parser("download", add_help=False)
+    p.add_argument("spec", type=str,
+                   help="Hugging Face spec: <org>/<repo>/<file>.cact, or <org>/<repo> if it holds one archive")
+    p.add_argument("--out", type=str, default=".", help="Directory to place the archive")
+
+    p = sub.add_parser("fetch", add_help=False)
+    p.add_argument("--out", type=str, default=None,
+                   help="Directory to place the engine (default: the cache)")
+    p.add_argument("--platform-tag", type=str, default=None,
+                   help="Fetch the build for another device, e.g. manylinux2014_aarch64")
+
     p = sub.add_parser("playground", add_help=False)
     p.add_argument("--weights", type=str, default=None,
                    help="Tuned .cact to serve (defaults to the base model from HuggingFace)")
@@ -172,6 +190,31 @@ def main():
     elif args.command == "build":
         from .model.finetune import build_main
         build_main(args)
+    elif args.command == "download":
+        import shutil
+        from huggingface_hub import hf_hub_download, list_repo_files
+        repo, filename = _weights_spec(args.spec)
+        if not filename:
+            cacts = [f for f in list_repo_files(repo) if f.endswith(".cact")]
+            if len(cacts) != 1:
+                raise SystemExit(f"{repo} holds {len(cacts)} .cact files, name one: "
+                                 + ", ".join(cacts[:5]))
+            filename = cacts[0]
+        cached = hf_hub_download(repo_id=repo, filename=filename, repo_type="model")
+        os.makedirs(args.out, exist_ok=True)
+        dest = os.path.join(args.out, os.path.basename(filename))
+        shutil.copyfile(cached, dest)
+        print(f"  {'weights':<9} {dest}  {os.path.getsize(dest) / 1e6:.2f} MB")
+        print(f"  {'next':<9} needle.Needle(weights={dest!r}, tools=[...])")
+    elif args.command == "fetch":
+        from .agent import fetch
+        dest = args.out or os.path.join(os.path.expanduser("~"), ".cache",
+                                        "cactus-needle", fetch.ENGINE_VERSION)
+        os.makedirs(dest, exist_ok=True)
+        path = fetch.fetch_library(fetch.ENGINE_VERSION, dest, tag=args.platform_tag)
+        print(f"  {'engine':<9} {path}")
+        print(f"  {'deploy':<9} copy to ~/.cache/cactus-needle/{fetch.ENGINE_VERSION}/ "
+              f"on the device, or point NEEDLE_LIB_PATH at the file")
     elif args.command == "playground":
         from .playground.server import main as playground_main
         playground_main(args)

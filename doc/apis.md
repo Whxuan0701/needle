@@ -151,3 +151,13 @@ Five or fewer declared tools render directly. Above that, retrieval engages: at 
 The `confidence` field is the minimum of two signals: a calibrated post-hoc head that scores the full prompt plus the call the model just produced, and the decoding probability of the call tokens. A call is accepted only when both agree, so the failure mode is escalation, not wrong execution. The contract: pick a threshold for your product, act at or above it, re-ask or route to a bigger model below it. Off-topic requests return the empty call `[]`.
 
 Calibration holds for the base model only. Fine-tuning does not update the head, so an agent running tuned weights reports `confidence` as `None` and warns once at construction.
+
+## Offline devices
+
+The engine is fetched once and cached at `~/.cache/cactus-needle/<engine version>/`. Inference itself never touches the network, so an air gapped device only needs that one file in place. Three ways to get it there:
+
+1. `needle fetch` downloads the engine for the current machine into the cache and prints the path. `--out <dir>` places it elsewhere. `--platform-tag manylinux2014_aarch64` fetches the build for a different device; tags follow the wheel names on the Hugging Face repo (`macosx_11_0_arm64`, `manylinux2014_x86_64`, `musllinux_1_2_aarch64`, `win_amd64`, `win_arm64`).
+2. Copy the file to the same cache path on the device, or drop it inside the installed `needle/` package directory, which wins over the cache.
+3. Set `NEEDLE_LIB_PATH=/path/to/libneedle.so` to load exactly that file and skip every lookup.
+
+The Python package itself installs offline the standard way: `pip download cactus-needle` on a connected machine, then `pip install --no-index --find-links <dir> cactus-needle` on the device.

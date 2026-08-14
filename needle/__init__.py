@@ -13,6 +13,9 @@ __all__ = ["Needle", "tool", "Field", "extract", "__version__"]
 def _library_path():
     from .agent import fetch
 
+    override = os.environ.get("NEEDLE_LIB_PATH")
+    if override:
+        return override
     here = os.path.dirname(os.path.abspath(__file__))
     local = os.path.join(here, fetch._lib_name())
     if os.path.exists(local):
