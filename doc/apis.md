@@ -160,4 +160,4 @@ The engine is fetched once and cached at `~/.cache/cactus-needle/<engine version
 2. Copy the file to the same cache path on the device, or drop it inside the installed `needle/` package directory, which wins over the cache.
 3. Set `NEEDLE_LIB_PATH=/path/to/libneedle.so` to load exactly that file and skip every lookup.
 
-The Python package itself installs offline the standard way: `pip download cactus-needle` on a connected machine, then `pip install --no-index --find-links <dir> cactus-needle` on the device.
+The Python package itself installs offline the standard way: `pip download cactus-needle` on a connected machine, then `pip install --no-index --find-links <dir> cactus-needle` on the device. On a device that must never attempt the network, also set `HF_HUB_OFFLINE=1` so a missing engine fails fast with a clear error instead of trying to download.

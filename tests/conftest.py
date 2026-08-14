@@ -11,7 +11,7 @@ def _engine_available():
         here = os.path.dirname(needle.__file__)
         name = fetch._lib_name()
         cache = os.path.join(os.path.expanduser("~"), ".cache",
-                             "cactus-needle", needle.__version__, name)
+                             "cactus-needle", fetch.ENGINE_VERSION, name)
         return os.path.exists(os.path.join(here, name)) or os.path.exists(cache)
     except Exception:
         return False

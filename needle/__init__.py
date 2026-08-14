@@ -31,6 +31,7 @@ def _library_path():
 _lib_handle = None
 _active = None
 _active_weights = None
+_active_blob = None
 
 
 def _lib():
@@ -65,12 +66,13 @@ class Needle:
         self._bind()
 
     def _bind(self):
-        global _active, _active_weights
+        global _active, _active_weights, _active_blob
         if _active is self:
             return
         if self._weights and _active_weights != self._weights:
             with open(self._weights, "rb") as handle:
                 blob = handle.read()
+            _active_blob = blob
             if _lib().needle_load(blob, len(blob)) != 0:
                 raise RuntimeError(
                     f"failed to load weights from {self._weights} - the .cact "
