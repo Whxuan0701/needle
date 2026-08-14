@@ -102,9 +102,16 @@ class Needle:
 
     def complete(self, text, max_new_tokens=256):
         self._bind()
-        _lib().needle_complete(text.encode("utf-8"), int(max_new_tokens),
-                               self._buffer, len(self._buffer))
-        response = json.loads(self._buffer.value.decode("utf-8"))
+        rc = _lib().needle_complete(text.encode("utf-8"), int(max_new_tokens),
+                                    self._buffer, len(self._buffer))
+        if rc < 0:
+            raise RuntimeError(f"needle_complete failed (code {rc})")
+        try:
+            response = json.loads(self._buffer.value.decode("utf-8"))
+        except json.JSONDecodeError as err:
+            raise RuntimeError(
+                f"engine returned an unparseable envelope ({err}); this is an "
+                f"engine bug - please report it with the prompt and schema") from err
         if self._weights:
             response["confidence"] = None
         return response
