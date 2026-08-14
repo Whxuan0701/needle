@@ -5,7 +5,7 @@ import zipfile
 
 HF_REPO = "Cactus-Compute/needle2"
 
-ENGINE_VERSION = "2.0.1"
+ENGINE_VERSION = "2.0.2"
 
 
 def _lib_name_for(tag):
