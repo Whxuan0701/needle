@@ -157,8 +157,9 @@ def main():
 
     p = sub.add_parser("download", add_help=False)
     p.add_argument("spec", type=str,
-                   help="Hugging Face spec: <org>/<repo>/<file>.cact, or <org>/<repo> if it holds one archive")
-    p.add_argument("--out", type=str, default=".", help="Directory to place the archive")
+                   help="Platform folder (e.g. macos-arm64), or Hugging Face spec: "
+                        "<org>/<repo>/<file>.cact, or <org>/<repo> if it holds one archive")
+    p.add_argument("--out", type=str, default=".", help="Directory to place the files")
 
     p = sub.add_parser("fetch", add_help=False)
     p.add_argument("--out", type=str, default=None,
@@ -193,19 +194,33 @@ def main():
     elif args.command == "download":
         import shutil
         from huggingface_hub import hf_hub_download, list_repo_files
-        repo, filename = _weights_spec(args.spec)
-        if not filename:
-            cacts = [f for f in list_repo_files(repo) if f.endswith(".cact")]
-            if len(cacts) != 1:
-                raise SystemExit(f"{repo} holds {len(cacts)} .cact files, name one: "
-                                 + ", ".join(cacts[:5]))
-            filename = cacts[0]
-        cached = hf_hub_download(repo_id=repo, filename=filename, repo_type="model")
-        os.makedirs(args.out, exist_ok=True)
-        dest = os.path.join(args.out, os.path.basename(filename))
-        shutil.copyfile(cached, dest)
-        print(f"  {'weights':<9} {dest}  {os.path.getsize(dest) / 1e6:.2f} MB")
-        print(f"  {'next':<9} needle.Needle(weights={dest!r}, tools=[...])")
+        from .agent import fetch
+        if "/" not in args.spec:
+            if args.spec not in fetch.PLATFORMS:
+                raise SystemExit("unknown platform, pick one of: "
+                                 + ", ".join(fetch.PLATFORMS))
+            paths = fetch.download_platform(args.spec, args.out)
+            for path in paths:
+                print(f"  {'file':<9} {path}  {os.path.getsize(path) / 1e6:.2f} MB")
+            runner = next((p for p in paths
+                           if os.path.basename(p) in ("needle", "needle.exe")), None)
+            if runner:
+                print(f"  {'next':<9} {runner} --tools tools.json --serve")
+        else:
+            fetch._register_download()
+            repo, filename = _weights_spec(args.spec)
+            if not filename:
+                cacts = [f for f in list_repo_files(repo) if f.endswith(".cact")]
+                if len(cacts) != 1:
+                    raise SystemExit(f"{repo} holds {len(cacts)} .cact files, name one: "
+                                     + ", ".join(cacts[:5]))
+                filename = cacts[0]
+            cached = hf_hub_download(repo_id=repo, filename=filename, repo_type="model")
+            os.makedirs(args.out, exist_ok=True)
+            dest = os.path.join(args.out, os.path.basename(filename))
+            shutil.copyfile(cached, dest)
+            print(f"  {'weights':<9} {dest}  {os.path.getsize(dest) / 1e6:.2f} MB")
+            print(f"  {'next':<9} needle.Needle(weights={dest!r}, tools=[...])")
     elif args.command == "fetch":
         from .agent import fetch
         dest = args.out or os.path.join(os.path.expanduser("~"), ".cache",
