@@ -5,7 +5,7 @@ import zipfile
 
 HF_REPO = "Cactus-Compute/needle2"
 
-ENGINE_VERSION = "2.0.2"
+ENGINE_VERSION = "2.0.3"
 
 PLATFORMS = ("macos-arm64", "linux-x86_64", "linux-arm64", "linux-armv7",
              "linux-riscv64", "linux-mipsel", "windows-x86_64", "windows-arm64",

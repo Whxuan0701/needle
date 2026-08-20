@@ -8,7 +8,7 @@ import warnings
 
 from .agent.tools import Field, build_schema, pydantic_schema, tool, _is_pydantic_model
 
-__version__ = "2.0.0"
+__version__ = "2.0.3"
 __all__ = ["Needle", "tool", "Field", "extract", "__version__"]
 
 
